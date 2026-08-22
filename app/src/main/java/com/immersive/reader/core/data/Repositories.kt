@@ -1,6 +1,7 @@
 package com.immersive.reader.core.data
 
 import android.content.ContentResolver
+import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.immersive.reader.core.database.BookDao
@@ -44,13 +45,20 @@ class BookRepository @Inject constructor(
             target.delete()
             throw error
         }
+        val coverPath = metadata.cover?.let { bitmap ->
+            val coverFile = File(targetDir, "$id.jpg")
+            coverFile.outputStream().use { output ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)
+            }
+            coverFile.absolutePath
+        }
 
         val book = BookEntity(
             id = id,
             title = metadata.title.ifBlank { displayName },
             author = metadata.author,
             filePath = target.absolutePath,
-            coverPath = null,
+            coverPath = coverPath,
             lastLocatorJson = null,
             progression = null,
             addedAt = System.currentTimeMillis(),

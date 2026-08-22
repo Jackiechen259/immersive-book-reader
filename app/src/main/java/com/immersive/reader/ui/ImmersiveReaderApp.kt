@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -16,6 +17,7 @@ import com.immersive.reader.ui.library.LibraryScreen
 import com.immersive.reader.ui.settings.SettingsScreen
 import com.immersive.reader.ui.session.StartSessionScreen
 import com.immersive.reader.ui.theme.ImmersiveReaderTheme
+import com.immersive.reader.reader.ReaderActivity
 
 @Composable
 fun ImmersiveReaderApp(
@@ -23,6 +25,7 @@ fun ImmersiveReaderApp(
 ) {
     val preferences by preferencesViewModel.preferences.collectAsStateWithLifecycle()
     val navController = rememberNavController()
+    val context = LocalContext.current
 
     ImmersiveReaderTheme(themeMode = preferences.theme) {
         Surface(modifier = Modifier.fillMaxSize()) {
@@ -40,6 +43,11 @@ fun ImmersiveReaderApp(
                     StartSessionScreen(
                         bookId = entry.arguments?.getString("bookId").orEmpty(),
                         onBack = { navController.popBackStack() },
+                        onStartReading = {
+                            entry.arguments?.getString("bookId")?.let { bookId ->
+                                context.startActivity(ReaderActivity.intent(context, bookId))
+                            }
+                        },
                     )
                 }
                 composable("settings") {

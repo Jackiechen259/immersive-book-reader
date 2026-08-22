@@ -38,7 +38,7 @@ import com.immersive.reader.core.model.TimerMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StartSessionScreen(bookId: String, onBack: () -> Unit) {
+fun StartSessionScreen(bookId: String, onBack: () -> Unit, onStartReading: () -> Unit) {
     var timerMode by remember { mutableStateOf(TimerMode.OPEN_ENDED) }
     var hours by remember { mutableIntStateOf(0) }
     var minutes by remember { mutableIntStateOf(30) }
@@ -89,7 +89,7 @@ fun StartSessionScreen(bookId: String, onBack: () -> Unit) {
                 Switch(checked = lockEnvironment, onCheckedChange = { lockEnvironment = it })
             }
             Spacer(Modifier.weight(1f))
-            Button(onClick = { /* Session coordinator is wired in Phase 4. */ }, modifier = Modifier.fillMaxWidth(), enabled = timerMode == TimerMode.OPEN_ENDED || hours * 60 + minutes > 0) {
+            Button(onClick = onStartReading, modifier = Modifier.fillMaxWidth(), enabled = timerMode == TimerMode.OPEN_ENDED || hours * 60 + minutes > 0) {
                 Text("Start reading")
             }
         }
