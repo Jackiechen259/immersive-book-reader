@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.immersive.reader.core.data.BookRepository
 import com.immersive.reader.core.model.ExitPolicy
 import com.immersive.reader.core.model.TimerMode
+import com.immersive.reader.focus.FocusCapabilities
+import com.immersive.reader.focus.FocusCapabilityDetector
 import com.immersive.reader.session.ReadingSessionCoordinator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -19,6 +21,7 @@ data class StartSessionUiState(
     val hours: Int = 0,
     val minutes: Int = 30,
     val lockEnvironment: Boolean = true,
+    val deepFocus: Boolean = false,
     val starting: Boolean = false,
     val errorMessage: String? = null,
 )
@@ -27,14 +30,19 @@ data class StartSessionUiState(
 class StartSessionViewModel @Inject constructor(
     private val bookRepository: BookRepository,
     private val coordinator: ReadingSessionCoordinator,
+    private val capabilityDetector: FocusCapabilityDetector,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(StartSessionUiState())
     val uiState: StateFlow<StartSessionUiState> = _uiState.asStateFlow()
+    val focusCapabilities: FocusCapabilities = capabilityDetector.getCapabilities()
 
-    fun setTimerMode(mode: TimerMode) = _uiState.update { it.copy(timerMode = mode, errorMessage = null) }
+    fun setTimerMode(mode: TimerMode) = _uiState.update {
+        it.copy(timerMode = mode, deepFocus = if (mode == TimerMode.OPEN_ENDED) false else it.deepFocus, errorMessage = null)
+    }
     fun setHours(hours: Int) = _uiState.update { it.copy(hours = hours.coerceIn(0, 99), errorMessage = null) }
     fun setMinutes(minutes: Int) = _uiState.update { it.copy(minutes = minutes.coerceIn(0, 59), errorMessage = null) }
     fun setLockEnvironment(enabled: Boolean) = _uiState.update { it.copy(lockEnvironment = enabled) }
+    fun setDeepFocus(enabled: Boolean) = _uiState.update { it.copy(deepFocus = enabled, lockEnvironment = true) }
 
     fun start(bookId: String, onStarted: (String) -> Unit) {
         val current = _uiState.value
@@ -56,7 +64,11 @@ class StartSessionViewModel @Inject constructor(
                     bookId = bookId,
                     timerMode = current.timerMode,
                     targetDurationMillis = durationMillis,
-                    exitPolicy = if (current.lockEnvironment) ExitPolicy.HOLD_TO_EXIT else ExitPolicy.CONFIRM,
+                    exitPolicy = when {
+                        current.deepFocus -> ExitPolicy.TIME_LOCKED
+                        current.lockEnvironment -> ExitPolicy.HOLD_TO_EXIT
+                        else -> ExitPolicy.CONFIRM
+                    },
                     startLocatorJson = book.lastLocatorJson,
                 )
             }.onSuccess { session ->

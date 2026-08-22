@@ -1,22 +1,99 @@
 # Immersive Reader
 
-Immersive Reader is a native Android EPUB reading app designed around a calm, focused reading session. The product model keeps the book, reading session, reader state, and focus capabilities separate so timer rules can evolve without coupling them to device locking.
+Immersive Reader is a native Android EPUB reader built around calm, persistent reading sessions. A session owns the timer, exit policy, focus capability, and recovery state; the reader UI does not keep a second copy of that state.
 
-## Current foundation
+## What is implemented
 
-- Kotlin + Jetpack Compose
-- MVVM-shaped UI with Hilt injection
-- Room entities for books and reading sessions
-- DataStore-backed reading preferences
-- SAF EPUB import into app-private storage
-- Library, session setup, and settings surfaces
+- SAF EPUB import (`application/epub+zip`) into app-private storage.
+- Readium Kotlin Toolkit 3.3.0 for validation, metadata, covers, EPUB navigation, and Locators.
+- Room-backed books and reading sessions, with automatic Locator persistence.
+- Unlimited and arbitrary-duration countdown sessions using epoch timestamps.
+- Session recovery after Activity recreation or process restart, including automatic expiry completion.
+- Compose reader controls with auto-hide, font size, line height, theme, paginated/scrolling mode, and progress.
+- Immersive system-bar handling, optional DND with permission checks, hold-to-exit, and emergency exit.
+- Consumer screen-pinning fallback and a separate Device Owner Deep Focus path.
+- Session summary and statistics: total time, sessions, completed/interrupted sessions, and time by book.
 
-The Readium Kotlin Toolkit, session coordinator, reader activity, focus tiers, and statistics are added in the following implementation phases.
+## Architecture
+
+```text
+Library / Start Session / Settings (Compose)
+            ↓
+       ViewModels
+            ↓
+ReadingSessionCoordinator ── ReadingSessionRepository ── Room
+            ↓
+ ReaderActivity + EpubNavigatorFragment + Compose overlay
+            ↓
+ FocusController (immersive / pinned / Device Owner Lock Task)
+```
+
+The independent product axes are `TimerMode`, `ExitPolicy`, and `FocusCapabilities`. An unlimited session can still use hold-to-exit and focus locking; a countdown is not automatically treated as a kiosk session.
 
 ## Build
 
+Requirements:
+
+- JDK 17 or newer
+- Android SDK platform/build tools 36
+- Android API 26 or newer
+
+PowerShell:
+
+```powershell
+$env:JAVA_HOME = 'path-to-jdk-17-or-newer'
+$env:ANDROID_HOME = 'path-to-android-sdk'
+./gradlew.bat :app:testDebugUnitTest
+./gradlew.bat :app:assembleDebug
+```
+
+The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
+
+## Focus capability matrix
+
+| Capability | Regular consumer device | Device Owner test device |
+| --- | --- | --- |
+| Immersive system bars | Available | Available |
+| Exit confirmation / hold | Available | Available |
+| DND | Only after notification-policy access | Only after notification-policy access |
+| `startLockTask()` fallback | Screen pinning, subject to system UX | True Lock Task after allowlisting |
+| Deep Focus (`TIME_LOCKED`) | Disabled in the setup UI | Available |
+
+The app never uses Accessibility to fight Android navigation, settings, uninstall, or emergency system UI. Screen pinning is not advertised as true kiosk mode.
+
+## Device Owner development provisioning
+
+Deep Focus is optional and intended for a clean emulator or a dedicated managed test device. Provisioning can fail on an already-used device and may require wiping it first. The app does not attempt to elevate itself silently.
+
+After installing the debug APK on a suitable test device/emulator, provision the receiver from a host machine:
+
 ```bash
+adb shell dpm set-device-owner \
+  com.immersive.reader/.focus.FocusDeviceAdminReceiver
+```
+
+The Settings screen reports whether Device Owner is actually available. Remove management using the normal Android device-management flow or by wiping the test device; do not run this command on a personal production phone.
+
+## Timer and recovery rules
+
+`OPEN_ENDED` stores `startEpochMillis` and computes elapsed time from the current wall clock. `COUNTDOWN` stores both the duration and `plannedEndEpochMillis`; it never decrements an in-memory counter. The coordinator is a singleton state machine backed by Room, so Activity recreation does not reset the session.
+
+If the app starts with an active session, the main screen offers to continue it. If a countdown has already expired, the coordinator marks it `COMPLETED`, restores focus policies, and avoids re-locking the device. DND changes persist the previous interruption filter so a process restart has a restoration path.
+
+## Testing
+
+The current automated coverage includes timestamp-based session timing tests. Run:
+
+```bash
+./gradlew :app:testDebugUnitTest
 ./gradlew :app:assembleDebug
 ```
 
-The project targets Android API 35 and supports Android 8.0 (API 26) and later.
+Manual device validation is still required for EPUB rendering, Storage Access Framework imports, gesture/navigation modes, screen pinning, DND permission flows, rotation/process death, calls, screen-off behavior, and Device Owner provisioning.
+
+## Known limitations
+
+- No PDF, audiobook, TTS, DRM/LCP production integration, cloud sync, accounts, or online bookstore.
+- The repository has no emulator/physical-device session attached to this development environment, so device-only behavior must be exercised on Android hardware or an emulator.
+- Room currently uses destructive migration for the pre-release MVP schema.
+- Android system UI and screen-pinning prompts remain controlled by the OS; no consumer app can guarantee absolute prevention of leaving the app.

@@ -89,6 +89,27 @@ fun StartSessionScreen(
                 }
                 Switch(checked = uiState.lockEnvironment, onCheckedChange = viewModel::setLockEnvironment)
             }
+            if (uiState.timerMode == TimerMode.COUNTDOWN) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Deep Focus", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (viewModel.focusCapabilities.isDeviceOwner) "Use true Device Owner Lock Task until the timer ends."
+                            else "Available only on a Device Owner managed test device.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = uiState.deepFocus,
+                        enabled = viewModel.focusCapabilities.isDeviceOwner,
+                        onCheckedChange = viewModel::setDeepFocus,
+                    )
+                }
+                if (!viewModel.focusCapabilities.isDeviceOwner) {
+                    Text("Deep Focus requires managed-device provisioning.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
             Spacer(Modifier.weight(1f))
             uiState.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Button(
