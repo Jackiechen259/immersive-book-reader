@@ -9,6 +9,7 @@ import com.immersive.reader.core.database.ReadingSessionDao
 import com.immersive.reader.core.database.ReadingSessionEntity
 import com.immersive.reader.core.model.Book
 import com.immersive.reader.core.model.ReadingSession
+import com.immersive.reader.reader.readium.ReadiumPublicationManager
 import java.io.File
 import java.util.UUID
 import javax.inject.Inject
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.map
 class BookRepository @Inject constructor(
     private val bookDao: BookDao,
     private val filesDir: File,
+    private val readium: ReadiumPublicationManager,
 ) {
     val books: Flow<List<Book>> = bookDao.observeBooks().map { books -> books.map(BookEntity::toModel) }
 
@@ -32,17 +34,21 @@ class BookRepository @Inject constructor(
         contentResolver.openInputStream(source)?.use { input -> target.outputStream().use(input::copyTo) }
             ?: error("Unable to open the selected EPUB")
 
-        val title = contentResolver.query(source, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        val displayName = contentResolver.query(source, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
             ?.use { cursor ->
                 if (cursor.moveToFirst()) cursor.getString(0).substringBeforeLast('.') else null
             }
             ?.takeIf(String::isNotBlank)
             ?: "Untitled book"
+        val metadata = readium.readMetadata(target).getOrElse { error ->
+            target.delete()
+            throw error
+        }
 
         val book = BookEntity(
             id = id,
-            title = title,
-            author = null,
+            title = metadata.title.ifBlank { displayName },
+            author = metadata.author,
             filePath = target.absolutePath,
             coverPath = null,
             lastLocatorJson = null,

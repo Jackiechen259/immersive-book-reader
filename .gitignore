@@ -10,6 +10,7 @@ local.properties
 
 # Generated Room schemas
 app/schemas/
+.kotlin/
 
 # OS/editor files
 .DS_Store
