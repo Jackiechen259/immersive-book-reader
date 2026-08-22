@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Nightlight
@@ -28,7 +28,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -36,6 +39,9 @@ import com.immersive.reader.core.datastore.ReaderPreferences
 import com.immersive.reader.core.model.ReadingMode
 import com.immersive.reader.core.model.ThemeMode
 import com.immersive.reader.focus.FocusCapabilities
+import com.immersive.reader.ui.StatisticsViewModel
+import com.immersive.reader.ui.ReadingStatistics
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,9 +56,11 @@ fun SettingsScreen(
     onUseDndChange: (Boolean) -> Unit,
     onOpenNotificationPolicySettings: () -> Unit,
     focusCapabilities: FocusCapabilities,
+    statisticsViewModel: StatisticsViewModel = hiltViewModel(),
 ) {
+    val statistics by statisticsViewModel.statistics.collectAsStateWithLifecycle()
     Scaffold(topBar = {
-        TopAppBar(title = { Text("Settings") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") } })
+        TopAppBar(title = { Text("Settings") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } })
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("Reading", style = MaterialTheme.typography.titleLarge)
@@ -94,10 +102,48 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            HorizontalDivider()
+            Text("Your reading", style = MaterialTheme.typography.titleLarge)
+            StatisticsSummary(statistics)
             Spacer(Modifier.height(24.dp))
             Text("Immersive Focus remains safe and reversible on regular devices. Screen pinning is reported separately from true Device Owner Lock Task.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+@Composable
+private fun StatisticsSummary(statistics: ReadingStatistics) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(formatStatisticsDuration(statistics.totalMillis), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+        Text("Total reading time", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            StatisticItem("Sessions", statistics.sessionCount.toString(), Modifier.weight(1f))
+            StatisticItem("Completed", statistics.completedCount.toString(), Modifier.weight(1f))
+            StatisticItem("Interrupted", statistics.interruptedCount.toString(), Modifier.weight(1f))
+        }
+        if (statistics.perBook.isNotEmpty()) {
+            Text("By book", style = MaterialTheme.typography.titleMedium)
+            statistics.perBook.take(5).forEach { stat ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(stat.title, maxLines = 1, modifier = Modifier.weight(1f))
+                    Text(formatStatisticsDuration(stat.totalMillis), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatisticItem(label: String, value: String, modifier: Modifier) {
+    Column(modifier) {
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+private fun formatStatisticsDuration(milliseconds: Long): String {
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(milliseconds).coerceAtLeast(0L)
+    return if (minutes >= 60) "${minutes / 60}h ${minutes % 60}m" else "${minutes}m"
 }
 
 @Composable

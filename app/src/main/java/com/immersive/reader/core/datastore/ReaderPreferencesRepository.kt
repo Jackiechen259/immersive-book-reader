@@ -29,7 +29,7 @@ data class ReaderPreferences(
 
 @Singleton
 class ReaderPreferencesRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     private object Keys {
         val theme = stringPreferencesKey("theme")

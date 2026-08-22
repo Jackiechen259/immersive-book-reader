@@ -51,6 +51,7 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
     private var sessionElapsedMillis by mutableStateOf<Long?>(null)
     private var sessionRemainingMillis by mutableStateOf<Long?>(null)
     private var exitDialog by mutableStateOf<ReaderExitDialogState?>(null)
+    private var summaryLaunched = false
     private var hideControlsJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,9 +90,11 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
                     is ReadingSessionState.Finished -> {
                         sessionElapsedMillis = state.session.accumulatedReadingMillis
                         sessionRemainingMillis = null
-                        if (state.session.bookId == bookId && !isFinishing) {
+                        if (state.session.bookId == bookId && !isFinishing && !summaryLaunched) {
+                            summaryLaunched = true
                             lifecycleScope.launch {
                                 focusController.exit()
+                                startActivity(SessionSummaryActivity.intent(this@ReaderActivity, state.session.id))
                                 finish()
                             }
                         }
@@ -190,16 +193,20 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
 
     private fun endSession(emergency: Boolean) {
         val active = sessionCoordinator.state.value as? ReadingSessionState.Active ?: return
+        summaryLaunched = true
         lifecycleScope.launch {
             val book = bookRepository.getBook(active.session.bookId)
-            sessionCoordinator.finish(
+            val finishedSession = sessionCoordinator.finish(
                 status = if (emergency) SessionStatus.EMERGENCY_EXIT else SessionStatus.USER_ENDED,
                 endLocatorJson = book?.lastLocatorJson,
                 emergencyExit = emergency,
             )
             focusController.exit()
             exitDialog = null
-            finish()
+            finishedSession?.let { session ->
+                startActivity(SessionSummaryActivity.intent(this@ReaderActivity, session.id))
+                finish()
+            }
         }
     }
 

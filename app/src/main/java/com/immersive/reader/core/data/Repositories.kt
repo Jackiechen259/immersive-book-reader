@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import com.immersive.reader.core.database.BookDao
 import com.immersive.reader.core.database.BookEntity
+import com.immersive.reader.core.database.BookReadingTotal
 import com.immersive.reader.core.database.ReadingSessionDao
 import com.immersive.reader.core.database.ReadingSessionEntity
 import com.immersive.reader.core.model.Book
@@ -96,6 +97,7 @@ class ReadingSessionRepository @Inject constructor(
     val sessionCount: Flow<Int> = dao.observeSessionCount()
     val completedCount: Flow<Int> = dao.observeCompletedCount()
     val interruptedCount: Flow<Int> = dao.observeInterruptedCount()
+    val perBookReadingMillis: Flow<List<BookReadingTotal>> = dao.observePerBookReadingMillis()
     suspend fun insert(session: ReadingSession) = dao.insert(session.toEntity())
     suspend fun update(session: ReadingSession) = dao.update(session.toEntity())
 }

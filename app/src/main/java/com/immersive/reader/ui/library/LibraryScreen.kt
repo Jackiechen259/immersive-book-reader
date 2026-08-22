@@ -1,9 +1,12 @@
 package com.immersive.reader.ui.library
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +47,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -51,6 +55,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +65,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.immersive.reader.core.model.Book
 import com.immersive.reader.ui.LibraryViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -156,15 +164,31 @@ private fun EmptyLibrary(modifier: Modifier, onImport: () -> Unit) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BookCard(book: Book, onClick: () -> Unit, onDelete: () -> Unit) {
+    val cover by produceState<Bitmap?>(initialValue = null, key1 = book.coverPath) {
+        value = book.coverPath?.let { path -> withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) } }
+    }
     Column(
         modifier = Modifier.combinedClickable(onClick = onClick, onLongClick = onDelete),
     ) {
-        Box(
+            Box(
             modifier = Modifier.fillMaxWidth().height(210.dp).clip(RoundedCornerShape(18.dp)).background(
                 Brush.verticalGradient(listOf(Color(0xFF6F9A88), Color(0xFF31564A))),
             ),
             contentAlignment = Alignment.Center,
-        ) {
+            ) {
+            cover?.let { bitmap ->
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Cover of ${book.title}",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            }
+            Box(
+                modifier = Modifier.fillMaxSize().background(
+                    Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.68f))),
+                ),
+            )
             Column(modifier = Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Default.AutoStories, null, tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(34.dp))
                 Spacer(Modifier.height(18.dp))

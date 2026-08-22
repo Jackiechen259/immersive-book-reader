@@ -8,6 +8,11 @@ import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
+data class BookReadingTotal(
+    val bookId: String,
+    val totalMillis: Long,
+)
+
 @Dao
 interface BookDao {
     @Query("SELECT * FROM books ORDER BY COALESCE(lastOpenedAt, addedAt) DESC")
@@ -54,4 +59,7 @@ interface ReadingSessionDao {
 
     @Query("SELECT COUNT(*) FROM reading_sessions WHERE status IN ('EMERGENCY_EXIT', 'INTERRUPTED')")
     fun observeInterruptedCount(): Flow<Int>
+
+    @Query("SELECT bookId AS bookId, COALESCE(SUM(accumulatedReadingMillis), 0) AS totalMillis FROM reading_sessions WHERE status != 'INTERRUPTED' GROUP BY bookId ORDER BY totalMillis DESC")
+    fun observePerBookReadingMillis(): Flow<List<BookReadingTotal>>
 }

@@ -20,7 +20,7 @@ class DatabaseConverters {
 @Database(
     entities = [BookEntity::class, ReadingSessionEntity::class],
     version = 1,
-    exportSchema = true,
+    exportSchema = false,
 )
 @TypeConverters(DatabaseConverters::class)
 abstract class AppDatabase : RoomDatabase() {
