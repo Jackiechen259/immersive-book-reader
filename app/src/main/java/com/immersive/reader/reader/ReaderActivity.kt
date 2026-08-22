@@ -52,6 +52,7 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
     private var sessionRemainingMillis by mutableStateOf<Long?>(null)
     private var exitDialog by mutableStateOf<ReaderExitDialogState?>(null)
     private var summaryLaunched = false
+    private var focusEntered = false
     private var hideControlsJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,7 +79,11 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
         )
         setContentView(root)
         lifecycleScope.launch {
-            preferencesRepository.preferences.collect { readerPreferences = it }
+            preferencesRepository.preferences.collect {
+                readerPreferences = it
+                if (it.keepScreenAwake) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
         }
         lifecycleScope.launch {
             sessionCoordinator.state.collect { state ->
@@ -152,8 +157,18 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
                     READER_TAG,
                 )
             }
-            restoredSession?.takeIf { it.bookId == bookId }?.let { focusController.enter(it) }
+            restoredSession?.takeIf { it.bookId == bookId }?.let {
+                focusController.enter(it)
+                focusEntered = true
+            }
             loading = false
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus && focusEntered && !isFinishing) {
+            lifecycleScope.launch { focusController.restore() }
         }
     }
 
