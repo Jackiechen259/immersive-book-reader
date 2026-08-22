@@ -43,9 +43,9 @@ fun ImmersiveReaderApp(
                     StartSessionScreen(
                         bookId = entry.arguments?.getString("bookId").orEmpty(),
                         onBack = { navController.popBackStack() },
-                        onStartReading = {
+                        onStartReading = { sessionId ->
                             entry.arguments?.getString("bookId")?.let { bookId ->
-                                context.startActivity(ReaderActivity.intent(context, bookId))
+                                context.startActivity(ReaderActivity.intent(context, bookId, sessionId))
                             }
                         },
                     )

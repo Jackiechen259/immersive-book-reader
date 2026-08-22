@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.immersive.reader.core.datastore.ReaderPreferences
 import com.immersive.reader.core.model.ReadingMode
 import com.immersive.reader.core.model.ThemeMode
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +48,8 @@ fun ReaderOverlay(
     controlsVisible: Boolean,
     progression: Double?,
     preferences: ReaderPreferences,
+    sessionElapsedMillis: Long?,
+    sessionRemainingMillis: Long?,
     onClose: () -> Unit,
     onOpenSettings: () -> Unit,
     onThemeChange: (ThemeMode) -> Unit,
@@ -85,7 +88,13 @@ fun ReaderOverlay(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Text("Reading", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                    Text(
+                        sessionRemainingMillis?.let { "${formatDuration(it)} remaining" }
+                            ?: sessionElapsedMillis?.let { formatDuration(it) }
+                            ?: "Reading",
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.weight(1f),
+                    )
                     progression?.let { Text("${(it * 100).toInt()}%", style = MaterialTheme.typography.labelLarge) }
                     TextButton(onClick = { settingsVisible = true; onOpenSettings() }) { Text("Preferences", color = Color.White) }
                 }
@@ -133,5 +142,17 @@ fun ReaderOverlay(
                 }
             }
         }
+    }
+}
+
+private fun formatDuration(milliseconds: Long): String {
+    val totalSeconds = TimeUnit.MILLISECONDS.toSeconds(milliseconds).coerceAtLeast(0L)
+    val hours = totalSeconds / 3_600
+    val minutes = (totalSeconds % 3_600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) {
+        "%02d:%02d:%02d".format(hours, minutes, seconds)
+    } else {
+        "%02d:%02d".format(minutes, seconds)
     }
 }

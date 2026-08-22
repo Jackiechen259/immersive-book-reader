@@ -17,7 +17,10 @@ import androidx.lifecycle.lifecycleScope
 import com.immersive.reader.core.datastore.ReaderPreferences
 import com.immersive.reader.core.datastore.ReaderPreferencesRepository
 import com.immersive.reader.core.data.BookRepository
+import com.immersive.reader.core.model.SessionStatus
 import com.immersive.reader.reader.readium.ReadiumPublicationManager
+import com.immersive.reader.session.ReadingSessionCoordinator
+import com.immersive.reader.session.ReadingSessionState
 import com.immersive.reader.ui.reader.ReaderOverlay
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
@@ -32,6 +35,7 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
     @Inject lateinit var readium: ReadiumPublicationManager
     @Inject lateinit var publicationStore: PublicationStore
     @Inject lateinit var preferencesRepository: ReaderPreferencesRepository
+    @Inject lateinit var sessionCoordinator: ReadingSessionCoordinator
 
     private var bookTitle by mutableStateOf("Opening book…")
     private var loading by mutableStateOf(true)
@@ -39,6 +43,8 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
     private var controlsVisible by mutableStateOf(false)
     private var progression by mutableStateOf<Double?>(null)
     private var readerPreferences by mutableStateOf(ReaderPreferences())
+    private var sessionElapsedMillis by mutableStateOf<Long?>(null)
+    private var sessionRemainingMillis by mutableStateOf<Long?>(null)
     private var hideControlsJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,6 +69,21 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
         lifecycleScope.launch {
             preferencesRepository.preferences.collect { readerPreferences = it }
         }
+        lifecycleScope.launch {
+            sessionCoordinator.state.collect { state ->
+                when (state) {
+                    is ReadingSessionState.Active -> {
+                        sessionElapsedMillis = state.elapsedMillis
+                        sessionRemainingMillis = state.remainingMillis
+                    }
+                    is ReadingSessionState.Finished -> {
+                        sessionElapsedMillis = state.session.accumulatedReadingMillis
+                        sessionRemainingMillis = null
+                    }
+                    ReadingSessionState.Idle -> Unit
+                }
+            }
+        }
         val overlay = androidx.compose.ui.platform.ComposeView(this).apply {
             setContent {
                 ReaderOverlay(
@@ -72,6 +93,8 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
                     controlsVisible = controlsVisible,
                     progression = progression,
                     preferences = readerPreferences,
+                    sessionElapsedMillis = sessionElapsedMillis,
+                    sessionRemainingMillis = sessionRemainingMillis,
                     onClose = ::finish,
                     onOpenSettings = { controlsVisible = true },
                     onThemeChange = { lifecycleScope.launch { preferencesRepository.setTheme(it) } },
@@ -87,6 +110,7 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
         )
 
         lifecycleScope.launch {
+            intent.getStringExtra(EXTRA_SESSION_ID)?.let { sessionCoordinator.restore() }
             val book = bookRepository.getBook(bookId)
             if (book == null) {
                 showError("This book is no longer in your library")
@@ -136,7 +160,12 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
         private const val READER_TAG = "epub_reader"
         private const val CONTROLS_TIMEOUT_MILLIS = 4_500L
 
-        fun intent(context: Context, bookId: String): Intent =
-            Intent(context, ReaderActivity::class.java).putExtra(EXTRA_BOOK_ID, bookId)
+        private const val EXTRA_SESSION_ID = "session_id"
+
+        fun intent(context: Context, bookId: String, sessionId: String? = null): Intent =
+            Intent(context, ReaderActivity::class.java).apply {
+                putExtra(EXTRA_BOOK_ID, bookId)
+                sessionId?.let { putExtra(EXTRA_SESSION_ID, it) }
+            }
     }
 }
