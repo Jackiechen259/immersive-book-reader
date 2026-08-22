@@ -26,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.immersive.reader.core.datastore.ReaderPreferences
 import com.immersive.reader.core.model.ReadingMode
 import com.immersive.reader.core.model.ThemeMode
+import com.immersive.reader.focus.FocusCapabilities
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +48,8 @@ fun SettingsScreen(
     onReadingModeChange: (ReadingMode) -> Unit,
     onKeepScreenAwakeChange: (Boolean) -> Unit,
     onUseDndChange: (Boolean) -> Unit,
+    onOpenNotificationPolicySettings: () -> Unit,
+    focusCapabilities: FocusCapabilities,
 ) {
     Scaffold(topBar = {
         TopAppBar(title = { Text("Settings") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") } })
@@ -71,9 +75,27 @@ fun SettingsScreen(
             HorizontalDivider()
             Text("Focus", style = MaterialTheme.typography.titleLarge)
             ToggleRow(title = "Keep screen awake", subtitle = "Respect the display timeout by default.", checked = preferences.keepScreenAwake, onCheckedChange = onKeepScreenAwakeChange)
-            ToggleRow(title = "Use Do Not Disturb", subtitle = "Requires Android notification policy access.", checked = preferences.useDnd, onCheckedChange = onUseDndChange)
+            ToggleRow(
+                title = "Use Do Not Disturb",
+                subtitle = if (focusCapabilities.notificationPolicyGranted) "Notification policy access granted." else "Android access is required before DND can be used.",
+                checked = preferences.useDnd,
+                onCheckedChange = { enabled ->
+                    if (enabled && !focusCapabilities.notificationPolicyGranted) onOpenNotificationPolicySettings() else onUseDndChange(enabled)
+                },
+            )
+            if (!focusCapabilities.notificationPolicyGranted) {
+                TextButton(onClick = onOpenNotificationPolicySettings) { Text("Open DND access settings") }
+            }
+            HorizontalDivider()
+            Text("Deep Focus", style = MaterialTheme.typography.titleLarge)
+            Text(
+                if (focusCapabilities.isDeviceOwner) "Available — this managed device can use true Lock Task mode."
+                else "Not available — standard focus is active. Device Owner provisioning is required for system-level locking.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Spacer(Modifier.height(24.dp))
-            Text("Deep Focus becomes available only when this app is provisioned as a Device Owner. Standard Focus remains safe and reversible on regular devices.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Immersive Focus remains safe and reversible on regular devices. Screen pinning is reported separately from true Device Owner Lock Task.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

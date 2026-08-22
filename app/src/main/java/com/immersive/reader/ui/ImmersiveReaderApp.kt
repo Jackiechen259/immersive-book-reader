@@ -1,5 +1,7 @@
 package com.immersive.reader.ui
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -24,6 +26,8 @@ fun ImmersiveReaderApp(
     preferencesViewModel: ReaderPreferencesViewModel = hiltViewModel(),
 ) {
     val preferences by preferencesViewModel.preferences.collectAsStateWithLifecycle()
+    val focusCapabilityViewModel: FocusCapabilityViewModel = hiltViewModel()
+    val focusCapabilities by focusCapabilityViewModel.capabilities.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val context = LocalContext.current
 
@@ -60,6 +64,10 @@ fun ImmersiveReaderApp(
                         onReadingModeChange = preferencesViewModel::setReadingMode,
                         onKeepScreenAwakeChange = preferencesViewModel::setKeepScreenAwake,
                         onUseDndChange = preferencesViewModel::setUseDnd,
+                        onOpenNotificationPolicySettings = {
+                            context.startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                        },
+                        focusCapabilities = focusCapabilities,
                     )
                 }
             }
