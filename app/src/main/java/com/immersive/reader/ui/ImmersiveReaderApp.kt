@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,13 +19,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.immersive.reader.ui.components.formatReadingDuration
 import com.immersive.reader.ui.library.LibraryScreen
 import com.immersive.reader.ui.settings.SettingsScreen
 import com.immersive.reader.ui.session.StartSessionScreen
 import com.immersive.reader.ui.theme.ImmersiveReaderTheme
 import com.immersive.reader.reader.ReaderActivity
 import com.immersive.reader.reader.SessionSummaryActivity
-import com.immersive.reader.session.ReadingSessionState
 
 @Composable
 fun ImmersiveReaderApp(
@@ -35,7 +36,7 @@ fun ImmersiveReaderApp(
     val focusCapabilities by focusCapabilityViewModel.capabilities.collectAsStateWithLifecycle()
     val sessionRecoveryViewModel: SessionRecoveryViewModel = hiltViewModel()
     val sessionStateViewModel: SessionStateViewModel = hiltViewModel()
-    val sessionState by sessionStateViewModel.state.collectAsStateWithLifecycle()
+    val recovery by sessionStateViewModel.recovery.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val context = LocalContext.current
 
@@ -80,15 +81,22 @@ fun ImmersiveReaderApp(
                 }
             }
         }
-        val activeSession = (sessionState as? ReadingSessionState.Active)?.session
-        if (activeSession != null) {
+        recovery?.let { active ->
             AlertDialog(
                 onDismissRequest = {},
-                title = { androidx.compose.material3.Text("Reading session recovered") },
-                text = { androidx.compose.material3.Text("An active ${activeSession.timerMode.name.lowercase().replace('_', ' ')} session is ready to continue.") },
+                title = { Text("Continue ${active.bookTitle}?") },
+                text = {
+                    Text(
+                        if (active.timed && active.remainingMillis != null) {
+                            "You have been reading for ${formatReadingDuration(active.elapsedMillis)}. ${formatReadingDuration(active.remainingMillis)} remaining."
+                        } else {
+                            "You have been reading for ${formatReadingDuration(active.elapsedMillis)}."
+                        },
+                    )
+                },
                 confirmButton = {
-                    Button(onClick = { context.startActivity(ReaderActivity.intent(context, activeSession.bookId, activeSession.id)) }) {
-                        androidx.compose.material3.Text("Continue reading")
+                    Button(onClick = { context.startActivity(ReaderActivity.intent(context, active.bookId, active.sessionId)) }) {
+                        Text("Continue reading")
                     }
                 },
                 dismissButton = {
@@ -96,7 +104,7 @@ fun ImmersiveReaderApp(
                         sessionRecoveryViewModel.endRecoveredSession { sessionId ->
                             context.startActivity(SessionSummaryActivity.intent(context, sessionId))
                         }
-                    }) { androidx.compose.material3.Text("End session") }
+                    }) { Text("End session") }
                 },
             )
         }

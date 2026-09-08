@@ -5,17 +5,21 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import com.immersive.reader.core.data.BookRepository
 import com.immersive.reader.core.data.ReadingSessionRepository
+import com.immersive.reader.core.datastore.ReaderPreferencesRepository
 import com.immersive.reader.core.model.ExitPolicy
 import com.immersive.reader.core.model.SessionStatus
+import com.immersive.reader.core.model.ThemeMode
 import com.immersive.reader.core.model.TimerMode
 import com.immersive.reader.session.ReadingSessionCoordinator
 import com.immersive.reader.ui.session.SessionSummaryScreen
+import com.immersive.reader.ui.theme.ImmersiveReaderTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -24,6 +28,8 @@ import org.readium.r2.shared.publication.Locator
 
 data class SessionSummaryUiState(
     val title: String,
+    val author: String?,
+    val coverPath: String?,
     val status: SessionStatus,
     val durationMillis: Long,
     val startProgression: Double?,
@@ -36,24 +42,34 @@ class SessionSummaryActivity : ComponentActivity() {
     @Inject lateinit var sessionRepository: ReadingSessionRepository
     @Inject lateinit var bookRepository: BookRepository
     @Inject lateinit var sessionCoordinator: ReadingSessionCoordinator
+    @Inject lateinit var preferencesRepository: ReaderPreferencesRepository
 
     private var summary by mutableStateOf<SessionSummaryUiState?>(null)
+    private var themeMode by mutableStateOf(ThemeMode.LIGHT)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         val sessionId = intent.getStringExtra(EXTRA_SESSION_ID).orEmpty()
         setContent {
-            SessionSummaryScreen(
-                summary = summary,
-                onBackToLibrary = ::finish,
-                onContinueReading = ::continueReading,
-            )
+            ImmersiveReaderTheme(themeMode = themeMode) {
+                SessionSummaryScreen(
+                    summary = summary,
+                    onBackToLibrary = ::finish,
+                    onContinueReading = ::continueReading,
+                )
+            }
+        }
+        lifecycleScope.launch {
+            preferencesRepository.preferences.collect { themeMode = it.theme }
         }
         lifecycleScope.launch {
             val session = sessionRepository.getById(sessionId) ?: return@launch
             val book = bookRepository.getBook(session.bookId)
             summary = SessionSummaryUiState(
                 title = book?.title ?: "Book",
+                author = book?.author,
+                coverPath = book?.coverPath,
                 status = session.status,
                 durationMillis = session.accumulatedReadingMillis,
                 startProgression = progression(session.startLocatorJson),

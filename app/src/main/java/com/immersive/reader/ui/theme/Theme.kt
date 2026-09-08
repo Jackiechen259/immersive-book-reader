@@ -1,17 +1,89 @@
 package com.immersive.reader.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.immersive.reader.core.model.ThemeMode
 
-private val Ink = Color(0xFF25312E)
-private val Moss = Color(0xFF355B4F)
-private val Paper = Color(0xFFF8F7F2)
-private val Sepia = Color(0xFFF2E8D5)
+private val LightScheme = lightColorScheme(
+    primary = ReaderColors.Moss,
+    onPrimary = Color.White,
+    primaryContainer = ReaderColors.Sage,
+    onPrimaryContainer = ReaderColors.Ink,
+    secondary = ReaderColors.Sage,
+    onSecondary = ReaderColors.Ink,
+    tertiary = ReaderColors.GoldSpine,
+    onTertiary = ReaderColors.Ink,
+    background = ReaderColors.Paper,
+    onBackground = ReaderColors.Ink,
+    surface = ReaderColors.PaperSurface,
+    onSurface = ReaderColors.Ink,
+    surfaceVariant = ReaderColors.SurfaceVariantLight,
+    onSurfaceVariant = ReaderColors.OnSurfaceVariantLight,
+    outline = ReaderColors.OutlineLight,
+    error = ReaderColors.Error,
+    onError = ReaderColors.OnError,
+    errorContainer = ReaderColors.ErrorContainer,
+    onErrorContainer = ReaderColors.OnErrorContainer,
+)
+
+private val SepiaScheme = lightColorScheme(
+    primary = ReaderColors.SepiaMoss,
+    onPrimary = Color.White,
+    primaryContainer = ReaderColors.SepiaSage,
+    onPrimaryContainer = ReaderColors.SepiaInk,
+    secondary = ReaderColors.SepiaSage,
+    onSecondary = ReaderColors.SepiaInk,
+    tertiary = ReaderColors.GoldSpine,
+    onTertiary = ReaderColors.SepiaInk,
+    background = ReaderColors.SepiaPaper,
+    onBackground = ReaderColors.SepiaInk,
+    surface = ReaderColors.SepiaSurface,
+    onSurface = ReaderColors.SepiaInk,
+    surfaceVariant = ReaderColors.SepiaSurfaceVariant,
+    onSurfaceVariant = ReaderColors.SepiaOnSurfaceVariant,
+    outline = ReaderColors.SepiaOutline,
+    error = ReaderColors.Error,
+    onError = ReaderColors.OnError,
+    errorContainer = ReaderColors.ErrorContainer,
+    onErrorContainer = ReaderColors.OnErrorContainer,
+)
+
+private val DarkScheme = darkColorScheme(
+    primary = ReaderColors.NightMoss,
+    onPrimary = ReaderColors.NightOnPrimary,
+    primaryContainer = ReaderColors.NightSage,
+    onPrimaryContainer = ReaderColors.NightInk,
+    secondary = ReaderColors.NightSage,
+    onSecondary = ReaderColors.NightInk,
+    tertiary = ReaderColors.NightGold,
+    onTertiary = ReaderColors.Night,
+    background = ReaderColors.Night,
+    onBackground = ReaderColors.NightInk,
+    surface = ReaderColors.NightSurface,
+    onSurface = ReaderColors.NightInk,
+    surfaceVariant = ReaderColors.NightSurfaceVariant,
+    onSurfaceVariant = ReaderColors.NightOnSurfaceVariant,
+    outline = ReaderColors.NightOutline,
+    error = Color(0xFFF2B8B5),
+    onError = Color(0xFF601410),
+    errorContainer = Color(0xFF8C1D18),
+    onErrorContainer = Color(0xFFF9DEDC),
+)
+
+private val ReaderShapes = Shapes(
+    extraSmall = RoundedCornerShape(6.dp),
+    small = RoundedCornerShape(10.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(18.dp),
+    extraLarge = RoundedCornerShape(28.dp),
+)
 
 @Composable
 fun ImmersiveReaderTheme(
@@ -19,26 +91,16 @@ fun ImmersiveReaderTheme(
     content: @Composable () -> Unit,
 ) {
     val systemDark = isSystemInDarkTheme()
-    val dark = themeMode == ThemeMode.DARK || (themeMode == ThemeMode.LIGHT && systemDark)
-    val scheme = if (dark) {
-        darkColorScheme(
-            primary = Color(0xFF9AC9B7),
-            onPrimary = Color(0xFF07382B),
-            background = Color(0xFF18201D),
-            surface = Color(0xFF202925),
-            onBackground = Color(0xFFE3E9E4),
-            onSurface = Color(0xFFE3E9E4),
-        )
-    } else {
-        lightColorScheme(
-            primary = Moss,
-            onPrimary = Color.White,
-            background = if (themeMode == ThemeMode.SEPIA) Sepia else Paper,
-            surface = if (themeMode == ThemeMode.SEPIA) Color(0xFFF9F1E3) else Color.White,
-            onBackground = Ink,
-            onSurface = Ink,
-        )
+    val scheme = when (themeMode) {
+        ThemeMode.DARK -> DarkScheme
+        ThemeMode.SEPIA -> SepiaScheme
+        ThemeMode.LIGHT -> if (systemDark) DarkScheme else LightScheme
     }
 
-    MaterialTheme(colorScheme = scheme, content = content)
+    MaterialTheme(
+        colorScheme = scheme,
+        typography = readerTypography(),
+        shapes = ReaderShapes,
+        content = content,
+    )
 }

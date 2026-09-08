@@ -7,23 +7,30 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.immersive.reader.core.model.SessionStatus
 import com.immersive.reader.reader.SessionSummaryUiState
-import java.util.concurrent.TimeUnit
+import com.immersive.reader.ui.components.BookCover
+import com.immersive.reader.ui.components.formatProgressPercent
+import com.immersive.reader.ui.components.formatReadingDuration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,23 +39,56 @@ fun SessionSummaryScreen(
     onBackToLibrary: () -> Unit,
     onContinueReading: () -> Unit,
 ) {
-    Scaffold(topBar = { TopAppBar(title = { Text("Session summary") }) }) { padding ->
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                title = { Text("Session summary") },
+            )
+        },
+    ) { padding ->
         if (summary == null) {
             CircularProgressIndicator(modifier = Modifier.fillMaxSize().padding(48.dp).wrapContentSize())
             return@Scaffold
         }
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 24.dp, vertical = 32.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 24.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(summary.status.title(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(18.dp))
-            Text(formatDuration(summary.durationMillis), style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(14.dp))
-            Text(summary.title, style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(8.dp))
-            ProgressText(summary.startProgression, summary.endProgression)
+            BookCover(
+                title = summary.title,
+                coverPath = summary.coverPath,
+                showFallbackTitle = false,
+                modifier = Modifier.width(96.dp).height(136.dp),
+            )
+            Spacer(Modifier.height(24.dp))
+            Text(
+                summary.status.title(),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                formatReadingDuration(summary.durationMillis),
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                summary.title,
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+            )
+            summary.author?.takeIf { it.isNotBlank() }?.let { author ->
+                Spacer(Modifier.height(4.dp))
+                Text(author, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(16.dp))
+            ProgressChange(summary.startProgression, summary.endProgression)
             Spacer(Modifier.height(36.dp))
             Button(onClick = onContinueReading, modifier = Modifier.fillMaxWidth()) { Text("Continue reading") }
             Spacer(Modifier.height(10.dp))
@@ -58,24 +98,28 @@ fun SessionSummaryScreen(
 }
 
 @Composable
-private fun ProgressText(start: Double?, end: Double?) {
-    val startText = start?.let { "${(it * 100).toInt()}%" } ?: "—"
-    val endText = end?.let { "${(it * 100).toInt()}%" } ?: "—"
-    Text("Progress: $startText → $endText", color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun ProgressChange(start: Double?, end: Double?) {
+    val endValue = end ?: start
+    if (endValue == null) {
+        Text("Progress saved", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "${start?.let(::formatProgressPercent) ?: "—"} → ${formatProgressPercent(endValue)}",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        LinearProgressIndicator(
+            progress = { endValue.toFloat().coerceIn(0f, 1f) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 private fun SessionStatus.title(): String = when (this) {
-    SessionStatus.COMPLETED -> "Focus completed"
-    SessionStatus.USER_ENDED -> "Session ended early"
+    SessionStatus.COMPLETED -> "Session complete"
+    SessionStatus.USER_ENDED -> "Session saved"
     SessionStatus.EMERGENCY_EXIT -> "Session interrupted"
     SessionStatus.INTERRUPTED -> "Session interrupted"
     SessionStatus.ACTIVE -> "Reading in progress"
-}
-
-private fun formatDuration(milliseconds: Long): String {
-    val totalSeconds = TimeUnit.MILLISECONDS.toSeconds(milliseconds).coerceAtLeast(0L)
-    val hours = totalSeconds / 3_600
-    val minutes = (totalSeconds % 3_600) / 60
-    val seconds = totalSeconds % 60
-    return "%02d:%02d:%02d".format(hours, minutes, seconds)
 }

@@ -1,11 +1,16 @@
 package com.immersive.reader.ui.reader
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -19,13 +24,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,7 +41,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,8 +49,12 @@ import com.immersive.reader.core.model.ReadingMode
 import com.immersive.reader.core.model.ThemeMode
 import com.immersive.reader.core.model.ExitPolicy
 import com.immersive.reader.session.ReadingSessionState
-import java.util.concurrent.TimeUnit
+import com.immersive.reader.ui.components.formatClock
+import com.immersive.reader.ui.components.formatProgressPercent
+import com.immersive.reader.ui.components.formatReadingDuration
 import android.os.SystemClock
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.withFrameNanos
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,6 +73,7 @@ fun ReaderOverlay(
     onDismissExit: () -> Unit,
     onRequestEmergencyExit: () -> Unit,
     onEndSession: (Boolean) -> Unit,
+    onLeaveReader: () -> Unit,
     onOpenSettings: () -> Unit,
     onThemeChange: (ThemeMode) -> Unit,
     onFontSizeChange: (Float) -> Unit,
@@ -72,12 +81,20 @@ fun ReaderOverlay(
     onReadingModeChange: (ReadingMode) -> Unit,
 ) {
     var settingsVisible by remember { mutableStateOf(false) }
+    val chrome = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+    val chromeContent = MaterialTheme.colorScheme.onSurface
+
     Box(Modifier.fillMaxSize()) {
-        if (controlsVisible || errorMessage != null) {
+        AnimatedVisibility(
+            visible = controlsVisible || errorMessage != null,
+            enter = fadeIn(tween(200)),
+            exit = fadeOut(tween(180)),
+            modifier = Modifier.align(Alignment.TopCenter),
+        ) {
             Surface(
-                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
-                color = Color.Black.copy(alpha = 0.68f),
-                contentColor = Color.White,
+                modifier = Modifier.fillMaxWidth(),
+                color = chrome,
+                contentColor = chromeContent,
             ) {
                 Row(
                     modifier = Modifier.statusBarsPadding().padding(horizontal = 8.dp, vertical = 6.dp),
@@ -86,49 +103,70 @@ fun ReaderOverlay(
                 ) {
                     IconButton(onClick = onRequestExit) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Close reader") }
                     Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { settingsVisible = true; onOpenSettings() }) { Text("Aa", color = Color.White) }
+                    TextButton(onClick = { settingsVisible = true; onOpenSettings() }) { Text("Aa") }
                 }
             }
         }
 
-        if (controlsVisible && errorMessage == null) {
+        AnimatedVisibility(
+            visible = controlsVisible && errorMessage == null,
+            enter = fadeIn(tween(200)),
+            exit = fadeOut(tween(180)),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
             Surface(
-                modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter),
-                color = Color.Black.copy(alpha = 0.68f),
-                contentColor = Color.White,
+                modifier = Modifier.fillMaxWidth(),
+                color = chrome,
+                contentColor = chromeContent,
             ) {
-                Row(
-                    modifier = Modifier.navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Text(
-                        sessionRemainingMillis?.let { "${formatDuration(it)} remaining" }
-                            ?: sessionElapsedMillis?.let { formatDuration(it) }
-                            ?: "Reading",
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.weight(1f),
-                    )
-                    progression?.let { Text("${(it * 100).toInt()}%", style = MaterialTheme.typography.labelLarge) }
-                    TextButton(onClick = { settingsVisible = true; onOpenSettings() }) { Text("Preferences", color = Color.White) }
+                Column(modifier = Modifier.navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Text(
+                            sessionRemainingMillis?.let { "${formatClock(it)} remaining" }
+                                ?: sessionElapsedMillis?.let { formatClock(it) }
+                                ?: "Reading",
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                        progression?.let {
+                            Text(formatProgressPercent(it), style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+                    progression?.let {
+                        Spacer(Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { it.toFloat().coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                    }
                 }
             }
         }
 
         when {
-            loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.White)
+            loading -> CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = MaterialTheme.colorScheme.primary,
+            )
             errorMessage != null -> Surface(
                 modifier = Modifier.align(Alignment.Center).padding(24.dp),
                 shape = MaterialTheme.shapes.large,
                 color = MaterialTheme.colorScheme.surface,
             ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.error)
-                    Text(errorMessage)
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.error)
+                        Text(errorMessage)
+                    }
+                    Button(onClick = onLeaveReader, modifier = Modifier.fillMaxWidth()) { Text("Back to library") }
                 }
             }
         }
@@ -136,7 +174,10 @@ fun ReaderOverlay(
 
     if (settingsVisible) {
         ModalBottomSheet(onDismissRequest = { settingsVisible = false }) {
-            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.navigationBarsPadding().padding(horizontal = 24.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Text("Reading preferences", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 Text("Font size", style = MaterialTheme.typography.labelLarge)
                 Slider(value = preferences.fontSize, onValueChange = onFontSizeChange, valueRange = 0.8f..1.5f, steps = 6)
@@ -145,22 +186,34 @@ fun ReaderOverlay(
                 Text("Theme", style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ThemeMode.entries.forEach { mode ->
-                        FilterChip(selected = preferences.theme == mode, onClick = { onThemeChange(mode) }, label = { Text(mode.name.lowercase().replaceFirstChar(Char::uppercase)) })
+                        FilterChip(
+                            selected = preferences.theme == mode,
+                            onClick = { onThemeChange(mode) },
+                            label = { Text(mode.label()) },
+                        )
                     }
                 }
                 Text("Reading mode", style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ReadingMode.entries.forEach { mode ->
-                        FilterChip(selected = preferences.readingMode == mode, onClick = { onReadingModeChange(mode) }, label = { Text(mode.name.lowercase().replaceFirstChar(Char::uppercase)) })
+                        FilterChip(
+                            selected = preferences.readingMode == mode,
+                            onClick = { onReadingModeChange(mode) },
+                            label = { Text(mode.label()) },
+                        )
                     }
                 }
+                Spacer(Modifier.height(12.dp))
             }
         }
     }
 
     exitDialog?.let { dialog ->
         ModalBottomSheet(onDismissRequest = onDismissExit) {
-            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(
+                modifier = Modifier.navigationBarsPadding().padding(horizontal = 24.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
                 if (dialog.emergency) {
                     Text("Emergency exit", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                     Text("Use this only when you genuinely need to leave the reading session. It will be marked as interrupted.")
@@ -171,13 +224,13 @@ fun ReaderOverlay(
                     )
                 } else if (dialog.active.session.exitPolicy == ExitPolicy.TIME_LOCKED) {
                     Text("Focus session in progress", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    Text("Remaining ${formatDuration(dialog.active.remainingMillis ?: 0L)}")
+                    Text("Remaining ${formatClock(dialog.active.remainingMillis ?: 0L)}")
                     Text("This session will unlock automatically when the timer ends.")
                     Button(onClick = onDismissExit, modifier = Modifier.fillMaxWidth()) { Text("Return to reading") }
                     TextButton(onClick = onRequestEmergencyExit, modifier = Modifier.fillMaxWidth()) { Text("Emergency exit") }
                 } else {
                     Text("End this reading?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    Text("You have focused for ${formatDuration(dialog.active.elapsedMillis)}. The session time will be saved.")
+                    Text("You have focused for ${formatReadingDuration(dialog.active.elapsedMillis)}. The session time will be saved.")
                     if (dialog.active.session.exitPolicy == ExitPolicy.CONFIRM) {
                         Button(onClick = { onEndSession(false) }, modifier = Modifier.fillMaxWidth()) { Text("End session") }
                     } else {
@@ -189,6 +242,7 @@ fun ReaderOverlay(
                     }
                     TextButton(onClick = onDismissExit, modifier = Modifier.fillMaxWidth()) { Text("Continue reading") }
                 }
+                Spacer(Modifier.height(8.dp))
             }
         }
     }
@@ -224,15 +278,18 @@ private fun HoldToExitButton(
         }
     }
     Surface(
-        modifier = Modifier.fillMaxWidth().pointerInput(durationMillis) {
-            detectTapGestures(
-                onPress = {
-                    holding = true
-                    tryAwaitRelease()
-                    holding = false
-                },
-            )
-        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .pointerInput(durationMillis) {
+                detectTapGestures(
+                    onPress = {
+                        holding = true
+                        tryAwaitRelease()
+                        holding = false
+                    },
+                )
+            },
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.errorContainer,
         contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -246,14 +303,13 @@ private fun HoldToExitButton(
 
 private const val EMERGENCY_HOLD_MILLIS = 5_000L
 
-private fun formatDuration(milliseconds: Long): String {
-    val totalSeconds = TimeUnit.MILLISECONDS.toSeconds(milliseconds).coerceAtLeast(0L)
-    val hours = totalSeconds / 3_600
-    val minutes = (totalSeconds % 3_600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        "%02d:%02d:%02d".format(hours, minutes, seconds)
-    } else {
-        "%02d:%02d".format(minutes, seconds)
-    }
+private fun ThemeMode.label(): String = when (this) {
+    ThemeMode.LIGHT -> "Light"
+    ThemeMode.SEPIA -> "Sepia"
+    ThemeMode.DARK -> "Dark"
+}
+
+private fun ReadingMode.label(): String = when (this) {
+    ReadingMode.PAGINATED -> "Pages"
+    ReadingMode.SCROLLING -> "Scroll"
 }

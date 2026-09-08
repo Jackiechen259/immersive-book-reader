@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Two quiet pages, joined by a warm beam of light. -->
+    <path
+        android:fillColor="#355B4F"
+        android:pathData="M18,31 C27,25 39,24 49,30 C51,31 53,33 54,34 C55,33 57,31 59,30 C69,24 81,25 90,31 L90,82 C80,78 69,78 59,84 C57,85 55,87 54,89 C53,87 51,85 49,84 C39,78 28,78 18,82 Z" />
+    <path
+        android:fillColor="#F8F7F2"
+        android:pathData="M23,34 C31,30 40,30 48,35 L48,76 C39,72 31,72 23,75 Z" />
+    <path
+        android:fillColor="#C7DDD0"
+        android:pathData="M60,35 C68,30 77,30 85,34 L85,75 C77,72 69,72 60,76 Z" />
+    <path
+        android:fillColor="#D6A86A"
+        android:pathData="M49,31 C50,34 52,36 54,37 C56,36 58,34 59,31 L59,77 C57,80 55,83 54,86 C53,83 51,80 49,77 Z" />
+    <path
+        android:fillColor="#D6A86A"
+        android:pathData="M54,18 L56.5,24 L62.5,26.5 L56.5,29 L54,35 L51.5,29 L45.5,26.5 L51.5,24 Z" />
+</vector>

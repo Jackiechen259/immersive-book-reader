@@ -3,6 +3,7 @@ package com.immersive.reader.ui.session
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.immersive.reader.core.data.BookRepository
+import com.immersive.reader.core.model.Book
 import com.immersive.reader.core.model.ExitPolicy
 import com.immersive.reader.core.model.TimerMode
 import com.immersive.reader.focus.FocusCapabilities
@@ -34,7 +35,19 @@ class StartSessionViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(StartSessionUiState())
     val uiState: StateFlow<StartSessionUiState> = _uiState.asStateFlow()
+    private val _book = MutableStateFlow<Book?>(null)
+    val book: StateFlow<Book?> = _book.asStateFlow()
     val focusCapabilities: FocusCapabilities = capabilityDetector.getCapabilities()
+
+    fun loadBook(bookId: String) {
+        viewModelScope.launch {
+            val loaded = bookRepository.getBook(bookId)
+            _book.value = loaded
+            if (loaded == null) {
+                _uiState.update { it.copy(errorMessage = "This book is no longer in your library") }
+            }
+        }
+    }
 
     fun setTimerMode(mode: TimerMode) = _uiState.update {
         it.copy(timerMode = mode, deepFocus = if (mode == TimerMode.OPEN_ENDED) false else it.deepFocus, errorMessage = null)

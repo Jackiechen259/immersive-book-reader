@@ -14,6 +14,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.commit
+import com.immersive.reader.core.model.ThemeMode
+import com.immersive.reader.ui.theme.ImmersiveReaderTheme
 import androidx.lifecycle.lifecycleScope
 import com.immersive.reader.core.datastore.ReaderPreferences
 import com.immersive.reader.core.datastore.ReaderPreferencesRepository
@@ -62,7 +64,7 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
             override fun handleOnBackPressed() = requestExit()
         })
         enableEdgeToEdge()
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
+        applyStatusBarAppearance(ThemeMode.LIGHT)
 
         val bookId = intent.getStringExtra(EXTRA_BOOK_ID).orEmpty()
         if (bookId.isBlank()) {
@@ -72,7 +74,7 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
 
         val navigatorContainerId = View.generateViewId()
         val root = FrameLayout(this)
-        root.setBackgroundColor(android.graphics.Color.WHITE)
+        root.setBackgroundColor(pageColor(ThemeMode.LIGHT))
         root.addView(
             FrameLayout(this).apply { id = navigatorContainerId },
             FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT),
@@ -81,6 +83,8 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
         lifecycleScope.launch {
             preferencesRepository.preferences.collect {
                 readerPreferences = it
+                root.setBackgroundColor(pageColor(it.theme))
+                applyStatusBarAppearance(it.theme)
                 if (it.keepScreenAwake) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             }
@@ -110,26 +114,29 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
         }
         val overlay = androidx.compose.ui.platform.ComposeView(this).apply {
             setContent {
-                ReaderOverlay(
-                    title = bookTitle,
-                    loading = loading,
-                    errorMessage = errorMessage,
-                    controlsVisible = controlsVisible,
-                    progression = progression,
-                    preferences = readerPreferences,
-                    sessionElapsedMillis = sessionElapsedMillis,
-                    sessionRemainingMillis = sessionRemainingMillis,
-                    exitDialog = exitDialog,
-                    onOpenSettings = { controlsVisible = true },
-                    onRequestExit = ::requestExit,
-                    onDismissExit = { exitDialog = null },
-                    onRequestEmergencyExit = { exitDialog = exitDialog?.copy(emergency = true) },
-                    onEndSession = ::endSession,
-                    onThemeChange = { lifecycleScope.launch { preferencesRepository.setTheme(it) } },
-                    onFontSizeChange = { lifecycleScope.launch { preferencesRepository.setFontSize(it) } },
-                    onLineHeightChange = { lifecycleScope.launch { preferencesRepository.setLineHeight(it) } },
-                    onReadingModeChange = { lifecycleScope.launch { preferencesRepository.setReadingMode(it) } },
-                )
+                ImmersiveReaderTheme(themeMode = readerPreferences.theme) {
+                    ReaderOverlay(
+                        title = bookTitle,
+                        loading = loading,
+                        errorMessage = errorMessage,
+                        controlsVisible = controlsVisible,
+                        progression = progression,
+                        preferences = readerPreferences,
+                        sessionElapsedMillis = sessionElapsedMillis,
+                        sessionRemainingMillis = sessionRemainingMillis,
+                        exitDialog = exitDialog,
+                        onOpenSettings = { controlsVisible = true },
+                        onRequestExit = ::requestExit,
+                        onDismissExit = { exitDialog = null },
+                        onRequestEmergencyExit = { exitDialog = exitDialog?.copy(emergency = true) },
+                        onEndSession = ::endSession,
+                        onLeaveReader = ::leaveReader,
+                        onThemeChange = { lifecycleScope.launch { preferencesRepository.setTheme(it) } },
+                        onFontSizeChange = { lifecycleScope.launch { preferencesRepository.setFontSize(it) } },
+                        onLineHeightChange = { lifecycleScope.launch { preferencesRepository.setLineHeight(it) } },
+                        onReadingModeChange = { lifecycleScope.launch { preferencesRepository.setReadingMode(it) } },
+                    )
+                }
             }
         }
         root.addView(
@@ -194,6 +201,18 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
         super.onDestroy()
     }
 
+    private fun leaveReader() {
+        lifecycleScope.launch {
+            focusController.exit()
+            finish()
+        }
+    }
+
+    private fun applyStatusBarAppearance(theme: ThemeMode) {
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars =
+            theme != ThemeMode.DARK
+    }
+
     private fun requestExit() {
         val active = sessionCoordinator.state.value as? ReadingSessionState.Active
         if (active == null) {
@@ -243,5 +262,13 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
                 putExtra(EXTRA_BOOK_ID, bookId)
                 sessionId?.let { putExtra(EXTRA_SESSION_ID, it) }
             }
+
+        private fun pageColor(theme: ThemeMode): Int = android.graphics.Color.parseColor(
+            when (theme) {
+                ThemeMode.DARK -> "#141C19"
+                ThemeMode.SEPIA -> "#EFE4CF"
+                ThemeMode.LIGHT -> "#F6F3EA"
+            },
+        )
     }
 }
