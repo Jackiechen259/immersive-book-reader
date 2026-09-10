@@ -1,9 +1,11 @@
 package com.immersive.reader.core.data
 
 import android.content.ContentResolver
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.immersive.reader.R
 import com.immersive.reader.core.database.BookDao
 import com.immersive.reader.core.database.BookEntity
 import com.immersive.reader.core.database.BookReadingTotal
@@ -12,6 +14,7 @@ import com.immersive.reader.core.database.ReadingSessionEntity
 import com.immersive.reader.core.model.Book
 import com.immersive.reader.core.model.ReadingSession
 import com.immersive.reader.reader.readium.ReadiumPublicationManager
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.util.UUID
 import javax.inject.Inject
@@ -24,6 +27,7 @@ class BookRepository @Inject constructor(
     private val bookDao: BookDao,
     private val filesDir: File,
     private val readium: ReadiumPublicationManager,
+    @param:ApplicationContext private val context: Context,
 ) {
     val books: Flow<List<Book>> = bookDao.observeBooks().map { books -> books.map(BookEntity::toModel) }
 
@@ -34,14 +38,14 @@ class BookRepository @Inject constructor(
         val targetDir = File(filesDir, "books").apply { mkdirs() }
         val target = File(targetDir, "$id.epub")
         contentResolver.openInputStream(source)?.use { input -> target.outputStream().use(input::copyTo) }
-            ?: error("Unable to open the selected EPUB")
+            ?: error(context.getString(R.string.error_open_selected_epub))
 
         val displayName = contentResolver.query(source, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
             ?.use { cursor ->
                 if (cursor.moveToFirst()) cursor.getString(0).substringBeforeLast('.') else null
             }
             ?.takeIf(String::isNotBlank)
-            ?: "Untitled book"
+            ?: context.getString(R.string.untitled_book)
         val metadata = readium.readMetadata(target).getOrElse { error ->
             target.delete()
             throw error

@@ -22,15 +22,17 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.immersive.reader.core.model.SessionStatus
+import com.immersive.reader.R
 import com.immersive.reader.reader.SessionSummaryUiState
 import com.immersive.reader.ui.components.BookCover
 import com.immersive.reader.ui.components.formatProgressPercent
-import com.immersive.reader.ui.components.formatReadingDuration
+import com.immersive.reader.ui.components.localizedReadingDuration
+import com.immersive.reader.ui.components.title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +46,7 @@ fun SessionSummaryScreen(
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-                title = { Text("Session summary") },
+                title = { Text(stringResource(R.string.session_summary)) },
             )
         },
     ) { padding ->
@@ -71,7 +73,7 @@ fun SessionSummaryScreen(
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                formatReadingDuration(summary.durationMillis),
+                localizedReadingDuration(summary.durationMillis),
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -90,18 +92,21 @@ fun SessionSummaryScreen(
             Spacer(Modifier.height(16.dp))
             ProgressChange(summary.startProgression, summary.endProgression)
             Spacer(Modifier.height(36.dp))
-            Button(onClick = onContinueReading, modifier = Modifier.fillMaxWidth()) { Text("Continue reading") }
+            Button(onClick = onContinueReading, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.continue_reading))
+            }
             Spacer(Modifier.height(10.dp))
-            OutlinedButton(onClick = onBackToLibrary, modifier = Modifier.fillMaxWidth()) { Text("Back to library") }
+            OutlinedButton(onClick = onBackToLibrary, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.back_to_library))
+            }
         }
     }
 }
-
 @Composable
 private fun ProgressChange(start: Double?, end: Double?) {
     val endValue = end ?: start
     if (endValue == null) {
-        Text("Progress saved", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.progress_saved), color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -116,10 +121,3 @@ private fun ProgressChange(start: Double?, end: Double?) {
     }
 }
 
-private fun SessionStatus.title(): String = when (this) {
-    SessionStatus.COMPLETED -> "Session complete"
-    SessionStatus.USER_ENDED -> "Session saved"
-    SessionStatus.EMERGENCY_EXIT -> "Session interrupted"
-    SessionStatus.INTERRUPTED -> "Session interrupted"
-    SessionStatus.ACTIVE -> "Reading in progress"
-}

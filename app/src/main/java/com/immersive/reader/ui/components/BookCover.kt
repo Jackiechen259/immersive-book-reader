@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -40,7 +41,8 @@ import com.immersive.reader.ui.theme.ReaderColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-fun Book.displayAuthor(): String = author?.takeIf { it.isNotBlank() } ?: "Unknown author"
+@Composable
+fun Book.displayAuthor(): String = author?.takeIf { it.isNotBlank() } ?: stringResource(R.string.unknown_author)
 
 @Composable
 fun BookCover(
@@ -49,8 +51,9 @@ fun BookCover(
     modifier: Modifier = Modifier,
     showFallbackTitle: Boolean = true,
     cornerRadius: Dp = 18.dp,
-    contentDescription: String? = "Cover of $title",
+    contentDescription: String? = null,
 ) {
+    val coverDescription = contentDescription ?: stringResource(R.string.cover_of, title)
     val cover by produceState<Bitmap?>(initialValue = null, key1 = coverPath) {
         value = coverPath?.let { path ->
             withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) }
@@ -62,7 +65,7 @@ fun BookCover(
         if (cover != null) {
             Image(
                 bitmap = cover!!.asImageBitmap(),
-                contentDescription = contentDescription,
+                contentDescription = coverDescription,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )

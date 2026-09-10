@@ -6,7 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.Toast
-import androidx.fragment.app.FragmentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.OnBackPressedCallback
 import androidx.compose.runtime.getValue
@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.commit
+import com.immersive.reader.R
 import com.immersive.reader.core.model.ThemeMode
 import com.immersive.reader.ui.theme.ImmersiveReaderTheme
 import androidx.lifecycle.lifecycleScope
@@ -36,7 +37,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 
 @AndroidEntryPoint
-class ReaderActivity : FragmentActivity(), ReaderProgressListener {
+class ReaderActivity : AppCompatActivity(), ReaderProgressListener {
     @Inject lateinit var bookRepository: BookRepository
     @Inject lateinit var readium: ReadiumPublicationManager
     @Inject lateinit var publicationStore: PublicationStore
@@ -44,7 +45,7 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
     @Inject lateinit var sessionCoordinator: ReadingSessionCoordinator
     @Inject lateinit var focusController: FocusController
 
-    private var bookTitle by mutableStateOf("Opening book…")
+    private var bookTitle by mutableStateOf("")
     private var loading by mutableStateOf(true)
     private var errorMessage by mutableStateOf<String?>(null)
     private var controlsVisible by mutableStateOf(false)
@@ -64,6 +65,7 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
             override fun handleOnBackPressed() = requestExit()
         })
         enableEdgeToEdge()
+        bookTitle = getString(R.string.opening_book)
         applyStatusBarAppearance(ThemeMode.LIGHT)
 
         val bookId = intent.getStringExtra(EXTRA_BOOK_ID).orEmpty()
@@ -148,12 +150,12 @@ class ReaderActivity : FragmentActivity(), ReaderProgressListener {
             val restoredSession = intent.getStringExtra(EXTRA_SESSION_ID)?.let { sessionCoordinator.restore() }
             val book = bookRepository.getBook(bookId)
             if (book == null) {
-                showError("This book is no longer in your library")
+                showError(getString(R.string.error_book_missing))
                 return@launch
             }
             bookTitle = book.title
             val publication = readium.open(File(book.filePath)).getOrElse { failure ->
-                showError(failure.message ?: "Unable to open this EPUB")
+                showError(failure.message ?: getString(R.string.error_open_this_epub))
                 return@launch
             }
             publicationStore.put(bookId, publication)

@@ -3,13 +3,14 @@ package com.immersive.reader.reader
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
+import com.immersive.reader.R
 import com.immersive.reader.core.data.BookRepository
 import com.immersive.reader.core.data.ReadingSessionRepository
 import com.immersive.reader.core.datastore.ReaderPreferencesRepository
@@ -38,7 +39,7 @@ data class SessionSummaryUiState(
 )
 
 @AndroidEntryPoint
-class SessionSummaryActivity : ComponentActivity() {
+class SessionSummaryActivity : AppCompatActivity() {
     @Inject lateinit var sessionRepository: ReadingSessionRepository
     @Inject lateinit var bookRepository: BookRepository
     @Inject lateinit var sessionCoordinator: ReadingSessionCoordinator
@@ -67,7 +68,7 @@ class SessionSummaryActivity : ComponentActivity() {
             val session = sessionRepository.getById(sessionId) ?: return@launch
             val book = bookRepository.getBook(session.bookId)
             summary = SessionSummaryUiState(
-                title = book?.title ?: "Book",
+                title = book?.title ?: getString(R.string.book_fallback),
                 author = book?.author,
                 coverPath = book?.coverPath,
                 status = session.status,

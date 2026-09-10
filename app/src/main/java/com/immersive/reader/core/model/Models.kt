@@ -30,6 +30,12 @@ enum class ReadingMode {
     SCROLLING,
 }
 
+enum class AppLanguage {
+    SYSTEM,
+    ENGLISH,
+    SIMPLIFIED_CHINESE,
+}
+
 data class Book(
     val id: String,
     val title: String,

@@ -24,4 +24,5 @@ class ReaderPreferencesViewModel @Inject constructor(
     fun setReadingMode(value: ReadingMode) = viewModelScope.launch { repository.setReadingMode(value) }
     fun setKeepScreenAwake(value: Boolean) = viewModelScope.launch { repository.setKeepScreenAwake(value) }
     fun setUseDnd(value: Boolean) = viewModelScope.launch { repository.setUseDnd(value) }
+    fun setAchievementsVisible(value: Boolean) = viewModelScope.launch { repository.setAchievementsVisible(value) }
 }

@@ -18,12 +18,13 @@ class DatabaseConverters {
 }
 
 @Database(
-    entities = [BookEntity::class, ReadingSessionEntity::class],
-    version = 1,
+    entities = [BookEntity::class, ReadingSessionEntity::class, AchievementUnlockEntity::class],
+    version = 2,
     exportSchema = false,
 )
 @TypeConverters(DatabaseConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
     abstract fun readingSessionDao(): ReadingSessionDao
+    abstract fun achievementUnlockDao(): AchievementUnlockDao
 }

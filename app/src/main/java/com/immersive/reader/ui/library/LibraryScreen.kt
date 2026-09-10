@@ -100,19 +100,25 @@ fun LibraryScreen(
             context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         viewModel.importBook(context.contentResolver, uri) { result ->
-            result.exceptionOrNull()?.let { error -> importError = error.message ?: "Unable to import this EPUB" }
+            result.exceptionOrNull()?.let { error ->
+                importError = error.message ?: context.getString(R.string.error_import_epub)
+            }
         }
     }
 
     pendingDelete?.let { book ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Remove book?") },
-            text = { Text("Remove ${book.title} and its local EPUB from your library?") },
+            title = { Text(stringResource(R.string.remove_book_title)) },
+            text = { Text(stringResource(R.string.remove_book_message, book.title)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.delete(book); pendingDelete = null }) { Text("Remove") }
+                TextButton(onClick = { viewModel.delete(book); pendingDelete = null }) {
+                    Text(stringResource(R.string.action_remove))
+                }
             },
-            dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancel") } },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.action_cancel)) }
+            },
         )
     }
 
@@ -137,20 +143,22 @@ fun LibraryScreen(
                 title = {
                     Column {
                         Text(
-                            "My library",
+                            stringResource(R.string.library_title),
                             fontWeight = FontWeight.SemiBold,
                             fontFamily = FontFamily.Serif,
                             style = MaterialTheme.typography.titleLarge,
                         )
                         Text(
-                            "A quieter place to read",
+                            stringResource(R.string.library_subtitle),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 },
                 actions = {
-                    IconButton(onClick = onOpenSettings) { Icon(Icons.Default.Settings, "Settings") }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Default.Settings, stringResource(R.string.settings))
+                    }
                 },
             )
         },
@@ -223,13 +231,13 @@ private fun EmptyLibrary(modifier: Modifier, onImport: () -> Unit, importing: Bo
         }
         Spacer(Modifier.height(26.dp))
         Text(
-            "Make room for a good book",
+            stringResource(R.string.empty_library_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
         )
         Spacer(Modifier.height(10.dp))
         Text(
-            "Import an EPUB and turn your phone into a calm, focused reading space.",
+            stringResource(R.string.empty_library_body),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -245,7 +253,7 @@ private fun EmptyLibrary(modifier: Modifier, onImport: () -> Unit, importing: Bo
                 Icon(Icons.Default.Add, null)
             }
             Spacer(Modifier.width(8.dp))
-            Text(if (importing) "Importing…" else "Import EPUB")
+            Text(if (importing) stringResource(R.string.importing) else stringResource(R.string.action_import_epub))
         }
     }
 }
@@ -275,7 +283,9 @@ private fun ContinueReadingCard(book: Book, onClick: () -> Unit, onDelete: () ->
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    book.progression?.let { "Continue · ${formatProgressPercent(it)}" } ?: "Continue reading",
+                    book.progression?.let {
+                        stringResource(R.string.continue_with_progress, formatProgressPercent(it))
+                    } ?: stringResource(R.string.continue_reading),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -299,7 +309,7 @@ private fun ContinueReadingCard(book: Book, onClick: () -> Unit, onDelete: () ->
             }
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, "Book actions")
+                    Icon(Icons.Default.MoreVert, stringResource(R.string.book_actions))
                 }
                 BookActionsMenu(
                     expanded = menuExpanded,
@@ -331,7 +341,11 @@ private fun BookCard(book: Book, onClick: () -> Unit, onDelete: () -> Unit) {
             )
             Box(modifier = Modifier.align(Alignment.TopEnd)) {
                 IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, "Book actions", tint = androidx.compose.ui.graphics.Color.White)
+                    Icon(
+                        Icons.Default.MoreVert,
+                        stringResource(R.string.book_actions),
+                        tint = androidx.compose.ui.graphics.Color.White,
+                    )
                 }
                 BookActionsMenu(
                     expanded = menuExpanded,
@@ -366,7 +380,7 @@ private fun BookCard(book: Book, onClick: () -> Unit, onDelete: () -> Unit) {
 private fun BookActionsMenu(expanded: Boolean, onDismiss: () -> Unit, onRemove: () -> Unit) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         DropdownMenuItem(
-            text = { Text("Remove") },
+            text = { Text(stringResource(R.string.action_remove)) },
             onClick = onRemove,
         )
     }
@@ -389,13 +403,17 @@ private fun ImportCard(onClick: () -> Unit, importing: Boolean) {
             if (importing) {
                 CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
                 Spacer(Modifier.height(12.dp))
-                Text("Importing…", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.importing), fontWeight = FontWeight.SemiBold)
             } else {
                 Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(34.dp))
                 Spacer(Modifier.height(12.dp))
-                Text("Import a book", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.import_a_book), fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
-                Text("EPUB", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    stringResource(R.string.epub_format),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

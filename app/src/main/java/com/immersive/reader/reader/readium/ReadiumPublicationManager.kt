@@ -2,6 +2,7 @@ package com.immersive.reader.reader.readium
 
 import android.content.Context
 import android.graphics.Bitmap
+import com.immersive.reader.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
@@ -23,7 +24,7 @@ data class ReadiumBookMetadata(
 
 @Singleton
 class ReadiumPublicationManager @Inject constructor(
-    @ApplicationContext context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     private val httpClient = DefaultHttpClient()
     private val assetRetriever = AssetRetriever(context.contentResolver, httpClient)
@@ -39,9 +40,9 @@ class ReadiumPublicationManager @Inject constructor(
     suspend fun open(file: File): Result<Publication> = withContext(Dispatchers.IO) {
         runCatching {
             val asset = assetRetriever.retrieve(file).getOrNull()
-                ?: error("Readium could not recognize this EPUB")
+                ?: error(context.getString(R.string.error_readium_recognize))
             publicationOpener.open(asset, allowUserInteraction = false).getOrNull()
-                ?: error("Readium could not open this EPUB")
+                ?: error(context.getString(R.string.error_readium_open))
         }
     }
 

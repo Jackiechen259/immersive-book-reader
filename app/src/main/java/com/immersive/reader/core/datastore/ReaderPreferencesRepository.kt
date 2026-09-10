@@ -25,6 +25,7 @@ data class ReaderPreferences(
     val keepScreenAwake: Boolean = false,
     val useDnd: Boolean = false,
     val exitHoldDurationSeconds: Int = 3,
+    val achievementsVisible: Boolean = true,
 )
 
 @Singleton
@@ -39,6 +40,7 @@ class ReaderPreferencesRepository @Inject constructor(
         val keepScreenAwake = booleanPreferencesKey("keep_screen_awake")
         val useDnd = booleanPreferencesKey("use_dnd")
         val exitHoldDurationSeconds = intPreferencesKey("exit_hold_duration_seconds")
+        val achievementsVisible = booleanPreferencesKey("achievements_visible")
     }
 
     val preferences: Flow<ReaderPreferences> = context.readerDataStore.data.map { values ->
@@ -50,6 +52,7 @@ class ReaderPreferencesRepository @Inject constructor(
             keepScreenAwake = values[Keys.keepScreenAwake] ?: false,
             useDnd = values[Keys.useDnd] ?: false,
             exitHoldDurationSeconds = values[Keys.exitHoldDurationSeconds] ?: 3,
+            achievementsVisible = values[Keys.achievementsVisible] ?: true,
         )
     }
 
@@ -60,4 +63,5 @@ class ReaderPreferencesRepository @Inject constructor(
     suspend fun setKeepScreenAwake(value: Boolean) = context.readerDataStore.edit { it[Keys.keepScreenAwake] = value }
     suspend fun setUseDnd(value: Boolean) = context.readerDataStore.edit { it[Keys.useDnd] = value }
     suspend fun setExitHoldDurationSeconds(value: Int) = context.readerDataStore.edit { it[Keys.exitHoldDurationSeconds] = value }
+    suspend fun setAchievementsVisible(value: Boolean) = context.readerDataStore.edit { it[Keys.achievementsVisible] = value }
 }

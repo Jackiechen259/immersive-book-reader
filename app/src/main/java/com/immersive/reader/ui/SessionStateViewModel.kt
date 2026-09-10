@@ -1,12 +1,15 @@
 package com.immersive.reader.ui
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.immersive.reader.R
 import com.immersive.reader.core.data.BookRepository
 import com.immersive.reader.core.model.TimerMode
 import com.immersive.reader.session.ReadingSessionCoordinator
 import com.immersive.reader.session.ReadingSessionState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,12 +29,14 @@ data class SessionRecoveryUi(
 class SessionStateViewModel @Inject constructor(
     coordinator: ReadingSessionCoordinator,
     bookRepository: BookRepository,
+    @ApplicationContext context: Context,
 ) : ViewModel() {
     val state: StateFlow<ReadingSessionState> = coordinator.state
 
     val recovery: StateFlow<SessionRecoveryUi?> = combine(coordinator.state, bookRepository.books) { sessionState, books ->
         val active = sessionState as? ReadingSessionState.Active ?: return@combine null
-        val title = books.firstOrNull { it.id == active.session.bookId }?.title ?: "your book"
+        val title = books.firstOrNull { it.id == active.session.bookId }?.title
+            ?: context.getString(R.string.your_book)
         SessionRecoveryUi(
             bookId = active.session.bookId,
             sessionId = active.session.id,

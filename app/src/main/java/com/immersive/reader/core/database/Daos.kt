@@ -63,3 +63,15 @@ interface ReadingSessionDao {
     @Query("SELECT bookId AS bookId, COALESCE(SUM(accumulatedReadingMillis), 0) AS totalMillis FROM reading_sessions WHERE status != 'INTERRUPTED' GROUP BY bookId ORDER BY totalMillis DESC")
     fun observePerBookReadingMillis(): Flow<List<BookReadingTotal>>
 }
+
+@Dao
+interface AchievementUnlockDao {
+    @Query("SELECT * FROM achievement_unlocks")
+    fun observeAll(): Flow<List<AchievementUnlockEntity>>
+
+    @Query("SELECT * FROM achievement_unlocks")
+    suspend fun getAll(): List<AchievementUnlockEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(unlocks: List<AchievementUnlockEntity>)
+}

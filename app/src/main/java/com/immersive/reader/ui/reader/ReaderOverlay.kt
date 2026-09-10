@@ -41,9 +41,12 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.immersive.reader.R
 import com.immersive.reader.core.datastore.ReaderPreferences
 import com.immersive.reader.core.model.ReadingMode
 import com.immersive.reader.core.model.ThemeMode
@@ -51,7 +54,8 @@ import com.immersive.reader.core.model.ExitPolicy
 import com.immersive.reader.session.ReadingSessionState
 import com.immersive.reader.ui.components.formatClock
 import com.immersive.reader.ui.components.formatProgressPercent
-import com.immersive.reader.ui.components.formatReadingDuration
+import com.immersive.reader.ui.components.label
+import com.immersive.reader.ui.components.localizedReadingDuration
 import android.os.SystemClock
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -101,7 +105,9 @@ fun ReaderOverlay(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    IconButton(onClick = onRequestExit) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Close reader") }
+                    IconButton(onClick = onRequestExit) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.close_reader))
+                    }
                     Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                     TextButton(onClick = { settingsVisible = true; onOpenSettings() }) { Text("Aa") }
                 }
@@ -125,9 +131,9 @@ fun ReaderOverlay(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Text(
-                            sessionRemainingMillis?.let { "${formatClock(it)} remaining" }
+                            sessionRemainingMillis?.let { stringResource(R.string.reader_remaining, formatClock(it)) }
                                 ?: sessionElapsedMillis?.let { formatClock(it) }
-                                ?: "Reading",
+                                ?: stringResource(R.string.reading),
                             style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.weight(1f),
                         )
@@ -166,7 +172,9 @@ fun ReaderOverlay(
                         Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.error)
                         Text(errorMessage)
                     }
-                    Button(onClick = onLeaveReader, modifier = Modifier.fillMaxWidth()) { Text("Back to library") }
+                    Button(onClick = onLeaveReader, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.back_to_library))
+                    }
                 }
             }
         }
@@ -178,12 +186,16 @@ fun ReaderOverlay(
                 modifier = Modifier.navigationBarsPadding().padding(horizontal = 24.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text("Reading preferences", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                Text("Font size", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    stringResource(R.string.reading_preferences),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(stringResource(R.string.font_size), style = MaterialTheme.typography.labelLarge)
                 Slider(value = preferences.fontSize, onValueChange = onFontSizeChange, valueRange = 0.8f..1.5f, steps = 6)
-                Text("Line height", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.line_height), style = MaterialTheme.typography.labelLarge)
                 Slider(value = preferences.lineHeight, onValueChange = onLineHeightChange, valueRange = 1.2f..2f, steps = 7)
-                Text("Theme", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.theme), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ThemeMode.entries.forEach { mode ->
                         FilterChip(
@@ -193,7 +205,7 @@ fun ReaderOverlay(
                         )
                     }
                 }
-                Text("Reading mode", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.reading_mode), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ReadingMode.entries.forEach { mode ->
                         FilterChip(
@@ -215,32 +227,61 @@ fun ReaderOverlay(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 if (dialog.emergency) {
-                    Text("Emergency exit", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    Text("Use this only when you genuinely need to leave the reading session. It will be marked as interrupted.")
+                    Text(
+                        stringResource(R.string.emergency_exit),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(stringResource(R.string.emergency_exit_body))
                     HoldToExitButton(
                         durationMillis = EMERGENCY_HOLD_MILLIS,
-                        label = "Hold 5 seconds to exit",
+                        label = stringResource(R.string.hold_five_seconds_to_exit),
                         onComplete = { onEndSession(true) },
                     )
                 } else if (dialog.active.session.exitPolicy == ExitPolicy.TIME_LOCKED) {
-                    Text("Focus session in progress", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    Text("Remaining ${formatClock(dialog.active.remainingMillis ?: 0L)}")
-                    Text("This session will unlock automatically when the timer ends.")
-                    Button(onClick = onDismissExit, modifier = Modifier.fillMaxWidth()) { Text("Return to reading") }
-                    TextButton(onClick = onRequestEmergencyExit, modifier = Modifier.fillMaxWidth()) { Text("Emergency exit") }
+                    Text(
+                        stringResource(R.string.focus_session_in_progress),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(stringResource(R.string.remaining_clock, formatClock(dialog.active.remainingMillis ?: 0L)))
+                    Text(stringResource(R.string.session_unlocks_when_timer_ends))
+                    Button(onClick = onDismissExit, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.return_to_reading))
+                    }
+                    TextButton(onClick = onRequestEmergencyExit, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.emergency_exit))
+                    }
                 } else {
-                    Text("End this reading?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    Text("You have focused for ${formatReadingDuration(dialog.active.elapsedMillis)}. The session time will be saved.")
+                    Text(
+                        stringResource(R.string.end_this_reading),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        stringResource(
+                            R.string.focused_time_will_be_saved,
+                            localizedReadingDuration(dialog.active.elapsedMillis),
+                        ),
+                    )
                     if (dialog.active.session.exitPolicy == ExitPolicy.CONFIRM) {
-                        Button(onClick = { onEndSession(false) }, modifier = Modifier.fillMaxWidth()) { Text("End session") }
+                        Button(onClick = { onEndSession(false) }, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.end_session))
+                        }
                     } else {
                         HoldToExitButton(
                             durationMillis = preferences.exitHoldDurationSeconds * 1_000L,
-                            label = "Hold ${preferences.exitHoldDurationSeconds} seconds to end",
+                            label = pluralStringResource(
+                                R.plurals.hold_seconds_to_end,
+                                preferences.exitHoldDurationSeconds,
+                                preferences.exitHoldDurationSeconds,
+                            ),
                             onComplete = { onEndSession(false) },
                         )
                     }
-                    TextButton(onClick = onDismissExit, modifier = Modifier.fillMaxWidth()) { Text("Continue reading") }
+                    TextButton(onClick = onDismissExit, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.continue_reading))
+                    }
                 }
                 Spacer(Modifier.height(8.dp))
             }
@@ -302,14 +343,3 @@ private fun HoldToExitButton(
 }
 
 private const val EMERGENCY_HOLD_MILLIS = 5_000L
-
-private fun ThemeMode.label(): String = when (this) {
-    ThemeMode.LIGHT -> "Light"
-    ThemeMode.SEPIA -> "Sepia"
-    ThemeMode.DARK -> "Dark"
-}
-
-private fun ReadingMode.label(): String = when (this) {
-    ReadingMode.PAGINATED -> "Pages"
-    ReadingMode.SCROLLING -> "Scroll"
-}

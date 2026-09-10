@@ -2,6 +2,7 @@ package com.immersive.reader.di
 
 import android.content.Context
 import androidx.room.Room
+import com.immersive.reader.core.database.AchievementUnlockDao
 import com.immersive.reader.core.database.AppDatabase
 import com.immersive.reader.core.database.BookDao
 import com.immersive.reader.core.database.ReadingSessionDao
@@ -28,6 +29,7 @@ object AppModule {
 
     @Provides fun provideBookDao(database: AppDatabase): BookDao = database.bookDao()
     @Provides fun provideReadingSessionDao(database: AppDatabase): ReadingSessionDao = database.readingSessionDao()
+    @Provides fun provideAchievementUnlockDao(database: AppDatabase): AchievementUnlockDao = database.achievementUnlockDao()
     @Provides fun provideFilesDir(@ApplicationContext context: Context): File = context.filesDir
 
     @Provides

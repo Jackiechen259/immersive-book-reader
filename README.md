@@ -49,6 +49,32 @@ $env:ANDROID_HOME = 'path-to-android-sdk'
 
 The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
 
+## Releases and in-app updates
+
+Sideloaded installs can check GitHub Latest Release, download the APK, and use the system installer. The app looks for a non-debug `.apk` on `Jackiechen259/immersive-book-reader`.
+
+### Publish a version
+
+1. Bump `versionName` and `versionCode` together in `app/build.gradle.kts`. `versionCode` must increase or Android will refuse the install.
+2. Commit the bump.
+3. Tag `v{versionName}` (example: `v0.2.0`) and push the tag.
+4. GitHub Actions builds a signed release APK and attaches `immersive-reader-{versionName}.apk` to the GitHub Release.
+
+The tag without the leading `v` must equal `versionName`.
+
+### Signing secrets
+
+Create an upload keystore (do not commit it) and add these repository secrets:
+
+- `SIGNING_KEYSTORE_BASE64` — `base64 -w0 upload.jks` (on macOS: `base64 -i upload.jks | tr -d '\n'`)
+- `SIGNING_STORE_PASSWORD`
+- `SIGNING_KEY_ALIAS`
+- `SIGNING_KEY_PASSWORD`
+
+The release job fails if any secret is missing. Local `assembleRelease` without those environment variables stays unsigned.
+
+A debug-signed install cannot be updated by a release-signed APK.
+
 ## Focus capability matrix
 
 | Capability | Regular consumer device | Device Owner test device |

@@ -35,12 +35,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.immersive.reader.R
 import com.immersive.reader.core.model.TimerMode
 import com.immersive.reader.ui.components.BookCover
 import com.immersive.reader.ui.components.ReadingProgress
@@ -67,8 +69,12 @@ fun StartSessionScreen(
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-                title = { Text("Prepare to read") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                title = { Text(stringResource(R.string.prepare_to_read)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
+                    }
+                },
             )
         },
     ) { padding ->
@@ -81,14 +87,14 @@ fun StartSessionScreen(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     BookCover(
-                        title = book?.title ?: "Book",
+                        title = book?.title ?: stringResource(R.string.book_fallback),
                         coverPath = book?.coverPath,
                         showFallbackTitle = false,
                         modifier = Modifier.width(80.dp).height(112.dp),
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
                         Text(
-                            book?.title ?: "Opening book…",
+                            book?.title ?: stringResource(R.string.opening_book),
                             style = MaterialTheme.typography.titleLarge,
                             fontFamily = FontFamily.Serif,
                             fontWeight = FontWeight.SemiBold,
@@ -105,22 +111,26 @@ fun StartSessionScreen(
                         ReadingProgress(book?.progression)
                     }
                 }
-                Text("How long would you like to read?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    stringResource(R.string.how_long_to_read),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     FilterChip(
                         selected = uiState.timerMode == TimerMode.OPEN_ENDED,
                         onClick = { viewModel.setTimerMode(TimerMode.OPEN_ENDED) },
-                        label = { Text("Unlimited") },
+                        label = { Text(stringResource(R.string.timer_unlimited)) },
                     )
                     FilterChip(
                         selected = uiState.timerMode == TimerMode.COUNTDOWN,
                         onClick = { viewModel.setTimerMode(TimerMode.COUNTDOWN) },
-                        label = { Text("Timed") },
+                        label = { Text(stringResource(R.string.timer_timed)) },
                     )
                 }
                 if (uiState.timerMode == TimerMode.OPEN_ENDED) {
                     Text(
-                        "No time limit. Your reading time will be recorded until you decide to end the session.",
+                        stringResource(R.string.unlimited_hint),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
@@ -128,7 +138,7 @@ fun StartSessionScreen(
                         OutlinedTextField(
                             value = uiState.hours.toString().padStart(2, '0'),
                             onValueChange = { viewModel.setHours(it.filter(Char::isDigit).take(2).toIntOrNull() ?: 0) },
-                            label = { Text("Hours") },
+                            label = { Text(stringResource(R.string.hours)) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                         )
@@ -136,13 +146,20 @@ fun StartSessionScreen(
                         OutlinedTextField(
                             value = uiState.minutes.toString().padStart(2, '0'),
                             onValueChange = { viewModel.setMinutes(it.filter(Char::isDigit).take(2).toIntOrNull() ?: 0) },
-                            label = { Text("Minutes") },
+                            label = { Text(stringResource(R.string.minutes)) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                         )
                     }
+                    val durationPresets = listOf(
+                        15 to stringResource(R.string.duration_preset_minutes, 15),
+                        30 to stringResource(R.string.duration_preset_minutes, 30),
+                        45 to stringResource(R.string.duration_preset_minutes, 45),
+                        60 to stringResource(R.string.duration_preset_hours, 1),
+                        120 to stringResource(R.string.duration_preset_hours, 2),
+                    )
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(15 to "15m", 30 to "30m", 45 to "45m", 60 to "1h", 120 to "2h").forEach { (value, label) ->
+                        durationPresets.forEach { (value, label) ->
                             FilterChip(
                                 selected = uiState.hours * 60 + uiState.minutes == value,
                                 onClick = { viewModel.setHours(value / 60); viewModel.setMinutes(value % 60) },
@@ -154,9 +171,9 @@ fun StartSessionScreen(
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Lock reading environment", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.lock_reading_environment), fontWeight = FontWeight.SemiBold)
                         Text(
-                            "Hide system chrome and add a clear exit boundary.",
+                            stringResource(R.string.lock_reading_environment_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -166,9 +183,9 @@ fun StartSessionScreen(
                 if (uiState.timerMode == TimerMode.COUNTDOWN && viewModel.focusCapabilities.isDeviceOwner) {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Deep Focus", fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.deep_focus), fontWeight = FontWeight.SemiBold)
                             Text(
-                                "Stay in the book until the timer ends.",
+                                stringResource(R.string.deep_focus_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -196,9 +213,9 @@ fun StartSessionScreen(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Starting…")
+                    Text(stringResource(R.string.starting))
                 } else {
-                    Text("Start reading")
+                    Text(stringResource(R.string.start_reading))
                 }
             }
         }

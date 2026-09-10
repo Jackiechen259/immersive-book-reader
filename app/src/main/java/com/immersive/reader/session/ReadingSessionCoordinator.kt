@@ -1,10 +1,13 @@
 package com.immersive.reader.session
 
+import android.content.Context
+import com.immersive.reader.R
 import com.immersive.reader.core.data.ReadingSessionRepository
 import com.immersive.reader.core.model.ExitPolicy
 import com.immersive.reader.core.model.ReadingSession
 import com.immersive.reader.core.model.SessionStatus
 import com.immersive.reader.core.model.TimerMode
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -36,6 +39,7 @@ sealed interface ReadingSessionState {
 @Singleton
 class ReadingSessionCoordinator @Inject constructor(
     private val repository: ReadingSessionRepository,
+    @param:ApplicationContext private val context: Context,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _state = MutableStateFlow<ReadingSessionState>(ReadingSessionState.Idle)
@@ -50,9 +54,11 @@ class ReadingSessionCoordinator @Inject constructor(
         exitPolicy: ExitPolicy,
         startLocatorJson: String?,
     ): ReadingSession = withContext(Dispatchers.IO) {
-        check(repository.getActive() == null) { "A reading session is already active" }
+        check(repository.getActive() == null) { context.getString(R.string.error_session_already_active) }
         if (timerMode == TimerMode.COUNTDOWN) {
-            require(targetDurationMillis != null && targetDurationMillis > 0) { "Countdown duration must be positive" }
+            require(targetDurationMillis != null && targetDurationMillis > 0) {
+                context.getString(R.string.error_countdown_not_positive)
+            }
         }
 
         val now = System.currentTimeMillis()

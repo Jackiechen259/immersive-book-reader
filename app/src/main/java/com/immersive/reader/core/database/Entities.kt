@@ -37,3 +37,10 @@ data class ReadingSessionEntity(
     val createdAt: Long,
     val updatedAt: Long,
 )
+
+@Entity(tableName = "achievement_unlocks")
+data class AchievementUnlockEntity(
+    @PrimaryKey val id: String,
+    val unlockedAtEpochMillis: Long,
+    val createdAtEpochMillis: Long,
+)

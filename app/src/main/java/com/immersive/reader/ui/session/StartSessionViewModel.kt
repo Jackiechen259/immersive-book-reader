@@ -1,7 +1,9 @@
 package com.immersive.reader.ui.session
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.immersive.reader.R
 import com.immersive.reader.core.data.BookRepository
 import com.immersive.reader.core.model.Book
 import com.immersive.reader.core.model.ExitPolicy
@@ -10,6 +12,7 @@ import com.immersive.reader.focus.FocusCapabilities
 import com.immersive.reader.focus.FocusCapabilityDetector
 import com.immersive.reader.session.ReadingSessionCoordinator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +32,7 @@ data class StartSessionUiState(
 
 @HiltViewModel
 class StartSessionViewModel @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val bookRepository: BookRepository,
     private val coordinator: ReadingSessionCoordinator,
     private val capabilityDetector: FocusCapabilityDetector,
@@ -44,7 +48,7 @@ class StartSessionViewModel @Inject constructor(
             val loaded = bookRepository.getBook(bookId)
             _book.value = loaded
             if (loaded == null) {
-                _uiState.update { it.copy(errorMessage = "This book is no longer in your library") }
+                _uiState.update { it.copy(errorMessage = context.getString(R.string.error_book_missing)) }
             }
         }
     }
@@ -65,14 +69,14 @@ class StartSessionViewModel @Inject constructor(
             null
         }
         if (current.timerMode == TimerMode.COUNTDOWN && (durationMillis == null || durationMillis <= 0L)) {
-            _uiState.update { it.copy(errorMessage = "Choose a countdown longer than one minute") }
+            _uiState.update { it.copy(errorMessage = context.getString(R.string.error_countdown_too_short)) }
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(starting = true, errorMessage = null) }
             runCatching {
-                val book = bookRepository.getBook(bookId) ?: error("This book is no longer in your library")
+                val book = bookRepository.getBook(bookId) ?: error(context.getString(R.string.error_book_missing))
                 coordinator.start(
                     bookId = bookId,
                     timerMode = current.timerMode,
@@ -87,7 +91,9 @@ class StartSessionViewModel @Inject constructor(
             }.onSuccess { session ->
                 onStarted(session.id)
             }.onFailure { error ->
-                _uiState.update { it.copy(starting = false, errorMessage = error.message ?: "Unable to start reading") }
+                _uiState.update {
+                    it.copy(starting = false, errorMessage = error.message ?: context.getString(R.string.error_start_reading))
+                }
             }
         }
     }
