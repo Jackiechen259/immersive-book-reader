@@ -15,3 +15,6 @@ app/schemas/
 # OS/editor files
 .DS_Store
 Thumbs.db
+
+# Release upload keystore and signing secrets (never commit)
+.key/
